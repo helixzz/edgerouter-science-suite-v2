@@ -1,0 +1,177 @@
+{
+	"log": {
+		"access": "/var/log/v2ray.access.log",
+			"error": "/var/log/v2ray.error.log",
+			"loglevel": "warn"
+	},
+
+		"inbounds": [{
+			"port": 1081,
+			"listen": "0.0.0.0",
+			"tag": "transparent-inbound",
+			"protocol": "dokodemo-door",
+			"settings": {
+				"network": "tcp",
+				"followRedirect": true
+			},
+			"sniffing": {
+				"enabled": true,
+				"destOverride": ["http", "tls"]
+			},
+			"streamSettings": {
+				"sockopt": {
+					"tproxy": "tproxy" 
+				}
+			}
+		}
+		],
+
+		"outbounds": [
+		{
+			"protocol": "vmess",
+			"settings": {
+				"vnext": [{
+					"address": "V2RAY_SERVER_ADDRESS",
+					"port": V2RAY_SERVER_PORT,
+					"users": [{
+						"id": "V2RAY_ACCOUNT_ID",
+						"alterId": 4,
+						"security": "auto",
+						"level": 1
+					}]
+				}]
+			},
+			"tag": "proxy-to-v2ray",
+			"streamSettings": {
+				"sockopt": {
+					"mark": 255
+				}
+			},
+			"mux": {
+				"enabled": true
+			}
+		},{
+			"protocol": "blackhole",
+				"settings": {},
+				"tag": "blocked"
+		},{
+			"tag": "direct-out",
+				"protocol": "freedom",
+				"settings": {
+					"domainStrategy": "AsIs"
+				},
+				"streamSettings": {
+					"sockopt": {
+						"mark": 255
+					}
+				}
+		},{
+			"tag": "dns-out",
+				"protocol": "dns",
+				"streamSettings": {
+					"sockopt": {
+						"mark": 255
+					}
+				}
+		}
+		],
+		"routing": {
+			"domainStrategy": "IPOnDemand",
+			"rules":[
+			{
+				"type": "field",
+				"ip": ["10.0.0.0/8","119.29.29.29","114.114.114.114","geoip:cn"],
+				"outboundTag": "direct-out"
+			},
+			{
+				"type": "field",
+				"domain": [
+					"domain:huobi.co",
+				"domain:huobi.com",
+				"domain:v2ray.com",
+				"domain:google.com",
+				"domain:hk",
+				"geosite:reddit",
+				"geosite:google",
+				"geosite:facebook",
+				"geosite:category-porn",
+				"geosite:category-media",
+				"geosite:imgur",
+				"geosite:netflix",
+				"geosite:pinterest",
+				"geosite:twitter",
+				"geosite:vimeo",
+				"geosite:youtube",
+				"geosite:steam",
+				"domain:letsencrypt.org",
+				"domain:docker.com",
+				"domain:ubnt.com",
+				"domain:ui.com",
+				"domain:wireguard.com",
+				"domain:pythonhosted.org",
+				"domain:python.org",
+				"domain:org",
+				"domain:letsencrypt.org",
+				"domain:linkedin.com",
+				"domain:openstack.org",
+				"domain:v2ex.com"
+					],
+					"outboundTag": "proxy-to-v2ray"
+			},
+			{
+				"type": "field",
+				"ip": ["8.8.8.8","8.8.4.4","1.1.1.1"],
+				"outboundTag": "proxy-to-v2ray"
+			},
+			{
+				"type": "field",
+				"domain": [
+					"geosite:category-ads",
+				"geosite:hunantv-ads",
+				"geosite:iqiyi-ads"
+				],
+				"outboundTag": "blocked"
+			},
+			{
+				"type": "field",
+				"protocol": ["bittorrent"], 
+				"outboundTag": "direct-out"
+			},
+			{
+				"type": "field",
+				"domain": [
+					"geosite:cn",
+				"geosite:baidu",
+				"geosite:bilibili",
+				"geosite:tencent",
+				"domain:weibo.com",
+				"domain:weibocdn.com",
+				"domain:ooklaserver.net",
+				"domain:speedtest.net",
+				"domain:cdnst.net",
+				"geosite:speedtest",
+				"geosite:microsoft"
+				],
+				"outboundTag": "direct-out"
+			}
+			]
+		},
+
+		"dns": {
+		},
+
+		"policy": {
+			"levels": {
+				"0": {
+					"uplinkOnly": 5,
+					"downlinkOnly": 5,
+					"bufferSize": 0
+				}
+			},
+			"system": {
+				"statsInboundUplink": false,
+				"statsInboundDownlink": false
+			}
+		}
+
+}
