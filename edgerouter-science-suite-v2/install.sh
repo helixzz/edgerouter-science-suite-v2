@@ -157,9 +157,11 @@ function install-frp () {
     log "Installing frp..."
     cp -r assets/frp /config/
     read -p "Enter frp remote port: " FRP_PORT
+    read -p "Enter frp privilege token: " FRP_TOKEN
     FRP_HOSTNAME="$(hostname -f)-$HWSN"
     sed -i "s/FRP_PORT/$FRP_PORT/g" /config/frp/frpc.ini
     sed -i "s/FRP_HOSTNAME/$FRP_HOSTNAME/g" /config/frp/frpc.ini
+    sed -i "s/FRP_TOKEN/$FRP_TOKEN/g" /config/frp/frpc.ini
     cp assets/frp/frpc.conf /etc/supervisor/conf.d
 }
 
