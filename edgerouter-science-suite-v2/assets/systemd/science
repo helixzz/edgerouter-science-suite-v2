@@ -1,0 +1,142 @@
+#! /bin/sh
+
+NAME=science
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+DAEMON=
+DAEMON_ARGS=""
+CHNROUTE="/config/chnroute.txt"
+#BYPASS_RANGE=""
+
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+. /lib/lsb/init-functions
+
+# Test if network ready (pppoe)
+test_network() {
+	curl --retry 1 --silent --connect-timeout 2 -I www.baidu.com  > /dev/null
+	if [ "$?" != "0" ]; then
+		echo 'network not ready, wait for 5 seconds ...'
+		sleep 5
+	fi
+}
+
+get_server_ip() {
+	server_host=`grep -o "\"address\"\s*:\s*\"\?[-0-9a-zA-Z._]\+\"\?" /config/v2ray/config.json|sed -e 's/"//g'|awk -F':' '{print $2}'|sed -e 's/\s//g'`
+	if [ -z $server_host ];then
+	  echo "Error : server_host is empty"
+	  exit 0
+	fi
+
+	#test if domain or ip
+	if echo $server_host | grep -q '^[^0-9]'; then
+	  echo "server_host : $server_host"
+	  server_ip=`getent hosts $server_host | awk '{ print $1 }'`
+	else
+	  server_ip=$server_host
+	fi
+
+	if [ -z "$server_ip" ];then
+	  echo "Error : server_ip is empty"
+	  exit 0
+	fi
+}
+
+gen_iplist() {
+	cat <<-EOF
+		0.0.0.0/8
+		10.0.0.0/8
+		100.64.0.0/10
+		127.0.0.0/8
+		169.254.0.0/16
+		172.16.0.0/12
+		192.168.0.0/16
+		224.0.0.0/4
+		240.0.0.0/4
+		255.255.255.255
+		110.232.176.0/22
+		$server_ip
+		$(cat ${CHNROUTE:=/dev/null} 2>/dev/null)
+EOF
+}
+
+rules_add() {
+	ipset -! -R <<-EOF || return 1
+		create ss_ipset_bypass hash:net
+		$(gen_iplist | sed -e "s/^/add ss_ipset_bypass /")
+EOF
+
+    ip route add local default dev lo table 233
+    ip rule add fwmark 1 lookup 233
+
+    iptables -w -t mangle -N V2RAY
+    iptables -w -t mangle -A V2RAY -p tcp -m set --match-set ss_ipset_bypass dst -j RETURN
+    iptables -w -t mangle -A V2RAY -p udp -m set --match-set ss_ipset_bypass dst -j RETURN
+    iptables -w -t mangle -A V2RAY -p udp --dport 53 -j RETURN
+    iptables -w -t mangle -A V2RAY -p tcp -j TPROXY --on-port 1081 --tproxy-mark 1
+    iptables -w -t mangle -A V2RAY -p udp -j TPROXY --on-port 1081 --tproxy-mark 1
+    iptables -w -t mangle -A PREROUTING -p tcp -j V2RAY
+    iptables -w -t mangle -A PREROUTING -p udp -j V2RAY
+
+    iptables -w -t mangle -N V2RAY_MARK
+    iptables -w -t mangle -A V2RAY_MARK -p tcp -m set --match-set ss_ipset_bypass dst -j RETURN
+    iptables -w -t mangle -A V2RAY_MARK -p udp -m set --match-set ss_ipset_bypass dst -j RETURN
+    iptables -w -t mangle -A V2RAY_MARK -p udp --dport 53 -j RETURN
+    iptables -w -t mangle -A V2RAY_MARK -j RETURN -m mark --mark 0xff # Return marked traffic to avoid loopback
+    iptables -w -t mangle -A V2RAY_MARK -p tcp -j MARK --set-mark 1
+    iptables -w -t mangle -A V2RAY_MARK -p udp -j MARK --set-mark 1
+    iptables -w -t mangle -A OUTPUT -p tcp -j V2RAY_MARK
+    iptables -w -t mangle -A OUTPUT -p udp -j V2RAY_MARK
+
+	if [ "$BYPASS_RANGE" ]; then
+		iptables -w -t nat -I V2RAY -s $BYPASS_RANGE -j RETURN
+		iptables -w -t nat -I V2RAY_MARK -s $BYPASS_RANGE -j RETURN
+	fi
+	return 0
+}
+
+rules_flush() {
+
+    iptables -w -t mangle -D PREROUTING -p tcp -j V2RAY
+    iptables -w -t mangle -D PREROUTING -p udp -j V2RAY
+    iptables -w -t mangle -D OUTPUT -p tcp -j V2RAY_MARK
+    iptables -w -t mangle -D OUTPUT -p udp -j V2RAY_MARK
+    iptables -w -t mangle -F V2RAY
+    iptables -w -t mangle -F V2RAY_MARK
+    iptables -w -t mangle -X V2RAY
+    iptables -w -t mangle -X V2RAY_MARK
+
+    ip route del local default dev lo table 233
+    ip rule del fwmark 1 lookup 233
+
+	ipset -X ss_ipset_bypass
+	
+	return 0
+}
+
+case "$1" in
+  start)
+	test_network
+	get_server_ip
+	echo "server_ip:$server_ip"
+	echo "Adding iptables rules, server_ip" `for i in $server_ip; do p=$p$i","; done; echo ${p%,}`
+	rules_add
+    ;;
+  stop)
+	echo "Deleteing iptables rules" "rules_flush"
+	rules_flush
+    ;;
+  force-reload|restart)
+    $0 stop
+    $0 start
+    ;;
+  status)
+    iptables -w -t nat -L -n -v
+    ;;
+  *)
+    echo "Usage: science {start|stop}"
+    exit 1
+    ;;
+esac
+
+exit 0

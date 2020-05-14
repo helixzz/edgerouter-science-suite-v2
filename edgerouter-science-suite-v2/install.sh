@@ -200,12 +200,29 @@ function install-frp () {
 
 function install-control-scripts () {
     log "Installing control scripts..."
-    cp assets/etc/init.d/science /etc/init.d/
-    chmod 755 /etc/init.d/science
-    cp assets/chnroute.txt /config/
-    update-rc.d science enable
-    /etc/init.d/science stop
-    /etc/init.d/science start
+    case $CODENAME in 
+        "wheezy")
+            cp assets/etc/init.d/science /etc/init.d/
+            chmod 755 /etc/init.d/science
+            cp assets/chnroute.txt /config/
+            update-rc.d science enable
+            /etc/init.d/science stop
+            /etc/init.d/science start
+            ;;
+        "stretch")
+            cp assets/systemd/science.service /lib/systemd/system/
+            mkdir /config/science
+            cp assets/systemd/science /config/science/
+            chmod a+x /config/science/science
+            systemctl daemon-reload
+            systemctl start science
+            log "Checking service..."
+            systemctl is-active science
+            ;;
+        *)
+            log "Unsupported OS version, skipping..."
+            ;;
+    esac
 }
 
 function verify-result () {
@@ -236,7 +253,7 @@ check-network
 install-supervisor
 install-v2ray
 install-dnsmasq
-# install-frp # Optional
+install-frp # Optional
 install-control-scripts
 verify-result
 
