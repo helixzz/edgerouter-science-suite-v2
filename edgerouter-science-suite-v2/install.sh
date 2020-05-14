@@ -36,6 +36,7 @@ function check-system-version () {
     VERSION_FILE="/etc/version"
     source $OS_RELEASE_FILE
     OS_RELEASE=$(echo $PRETTY_NAME)
+    CODENAME=$(echo $VERSION_CODENAME)
     VERSION=$(cat /etc/version)
     KERNEL_VERSION=$(uname -r)
     log "OS Release: $OS_RELEASE"
@@ -83,7 +84,7 @@ function check-ulimit () {
 
 function configure-set-system-parameters () {
     log "Importing system configuration..."
-    /bin/vbash assets/configure-set-system-parameters.sh
+    /bin/vbash assets/configure-set-system-parameters-$CODENAME.sh
 }
 
 function check-network () {
@@ -137,19 +138,29 @@ function install-supervisor () {
     # Alternatively, use online installation...
     # apt-get -y -qq update
     # apt-get -y -qq install supervisor
-    dpkg --force-all -i assets/supervisor/python-medusa_0.5.4-7_all.deb 2>&1 >> $LOGFILE 
-    dpkg --force-all -i assets/supervisor/python-meld3_0.6.5-3.1_mips.deb 2>&1 >> $LOGFILE
-    dpkg --force-all -i assets/supervisor/python-pkg-resources_0.6.24-1_all.deb 2>&1 >> $LOGFILE
-    dpkg --force-all -i assets/supervisor/python-support_1.0.15_all.deb 2>&1 >> $LOGFILE
-    dpkg --force-all -i assets/supervisor/supervisor_3.0a8-1.1+deb7u1_all.deb 2>&1 >> $LOGFILE
-    cp assets/supervisord.conf /etc/supervisor/supervisord.conf
-    sed -i "s^LOGDIR=/var/log/supervisor^LOGDIR=/var/log^g" /etc/init.d/supervisor
-    if ! grep ulimit /etc/init.d/supervisor; then
-        sed -i "/LOGDIR/a ulimit -n 1048576" /etc/init.d/supervisor
-    fi
-    echo "*/2 * * * * root if ! pgrep supervisord; then /etc/init.d/supervisor start; fi" > /etc/cron.d/supervisord-watchdog
-    /etc/init.d/supervisor stop
-    /etc/init.d/supervisor start
+    case $CODENAME in 
+        "wheezy")
+            dpkg --force-all -i assets/supervisor/python-medusa_0.5.4-7_all.deb 2>&1 >> $LOGFILE 
+            dpkg --force-all -i assets/supervisor/python-meld3_0.6.5-3.1_mips.deb 2>&1 >> $LOGFILE
+            dpkg --force-all -i assets/supervisor/python-pkg-resources_0.6.24-1_all.deb 2>&1 >> $LOGFILE
+            dpkg --force-all -i assets/supervisor/python-support_1.0.15_all.deb 2>&1 >> $LOGFILE
+            dpkg --force-all -i assets/supervisor/supervisor_3.0a8-1.1+deb7u1_all.deb 2>&1 >> $LOGFILE
+            cp assets/supervisord.conf /etc/supervisor/supervisord.conf
+            sed -i "s^LOGDIR=/var/log/supervisor^LOGDIR=/var/log^g" /etc/init.d/supervisor
+            if ! grep ulimit /etc/init.d/supervisor; then
+                sed -i "/LOGDIR/a ulimit -n 1048576" /etc/init.d/supervisor
+            fi
+            echo "*/2 * * * * root if ! pgrep supervisord; then /etc/init.d/supervisor start; fi" > /etc/cron.d/supervisord-watchdog
+            /etc/init.d/supervisor stop
+            /etc/init.d/supervisor start
+            ;;
+        "stretch")
+            
+            ;;
+        *)
+            log "ERROR: OS version $CODENAME not supported."
+            ;;
+    esac
     if ps -ef | grep -v grep | grep supervisor; then
         log "Supervisor configured."
     else
