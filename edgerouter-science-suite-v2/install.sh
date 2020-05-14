@@ -49,8 +49,8 @@ function install-tproxy-modules () {
     log "Installing TPROXY kernel modules..."
     case $KERNEL_VERSION in 
 	"3.10.107-UBNT")
-		chmod 644 assets/modules/*.ko
-		cp assets/modules/*.ko /lib/modules/3.10.107-UBNT/kernel/net/netfilter/
+		chmod 644 assets/modules/$KERNEL_VERSION/*.ko
+		cp assets/modules/$KERNEL_VERSION/*.ko /lib/modules/$KERNEL_VERSION/kernel/net/netfilter/
 		cat assets/modules/tproxy.conf >> /etc/modules
 		log "depmod..."
 		depmod -a
@@ -58,6 +58,10 @@ function install-tproxy-modules () {
 		modprobe xt_TPROXY
 		modprobe xt_socket
 		;;
+        "4.9.79-UBNT")
+                log "WARNING: Current kernel version $KERNEL_VERSION is under development."
+                log "You can proceed with installation, but UDP forwarding will not work."
+                ;;
 	*)
 		log "WARNING: Current kernel version $KERNEL_VERSION not supported."
 		log "You can proceed with installation, but UDP forwarding will not work."
@@ -75,6 +79,10 @@ function check-ulimit () {
         log "Increasing limits in /etc/security/limits.conf ..."
         echo "*               soft    nofile          1048576" >> /etc/security/limits.conf
         echo "*               hard    nofile          1048576" >> /etc/security/limits.conf
+        if [ "$CODENAME" == "stretch" ]; then
+            echo "DefaultLimitNOFILE=1048576" >> /etc/systemd/system.conf
+            systemctl daemon-reload
+        fi
         ulimit -n 1048576
         ULIMIT=$(ulimit -n)
         if [ $ULIMIT -lt 1048576 ]; then
@@ -160,6 +168,10 @@ function install-supervisor () {
         "stretch")
             dpkg --force-all -i assets/supervisor/stretch/python-meld3_1.0.2-2_all.deb 2>&1 >> $LOGFILE
 	    dpkg --force-all -i assets/supervisor/stretch/supervisor_3.3.1-1+deb9u1_all.deb 2>&1 >> $LOGFILE
+            sed -i "/\[Service\]/a LimitNOFILE=1048576" /lib/systemd/system/supervisor.service
+            systemctl daemon-reload
+            systemctl stop supervisor
+            systemctl start supervisor
             ;;
         *)
             log "ERROR: OS version $CODENAME not supported."
