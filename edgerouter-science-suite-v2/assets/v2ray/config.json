@@ -44,7 +44,8 @@
 			"tag": "proxy-to-v2ray",
 			"streamSettings": {
 				"sockopt": {
-					"mark": 255
+					"mark": 255,
+					"tcpFastOpen": true
 				}
 			},
 			"mux": {
