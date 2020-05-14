@@ -143,6 +143,7 @@ function install-supervisor () {
     dpkg --force-all -i assets/supervisor/python-support_1.0.15_all.deb 2>&1 >> $LOGFILE
     dpkg --force-all -i assets/supervisor/supervisor_3.0a8-1.1+deb7u1_all.deb 2>&1 >> $LOGFILE
     cp assets/supervisord.conf /etc/supervisor/supervisord.conf
+    sed -i "s^LOGDIR=/var/log/supervisor^LOGDIR=/var/log^g" /etc/init.d/supervisor
     /etc/init.d/supervisor stop
     /etc/init.d/supervisor start
     if ps -ef | grep -v grep | grep supervisor; then
