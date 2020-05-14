@@ -47,21 +47,24 @@ function check-system-version () {
 
 function install-tproxy-modules () {
     log "Installing TPROXY kernel modules..."
-    if [ "$KERNEL_VERSION" == "3.10.107-UBNT" ]; then
-        log "Current kernel version supported. Copying files..."
-        chmod 644 assets/modules/*.ko
-        cp assets/modules/*.ko /lib/modules/3.10.107-UBNT/kernel/net/netfilter/
-        cat assets/modules/tproxy.conf >> /etc/modules
-        depmod -a
-        modprobe nf_tproxy_core
-        modprobe xt_TPROXY
-        modprobe xt_socket
-    else
-        log "WARNING: Current kernel version $KERNEL_VERSION not supported."
-        log "You can proceed with installation, but UDP forwarding will not work."
-        log "We recommend you to install UBNT FW 1.10.x to get proper kernel version."
-        log "Alternatively, you can build xt_TPROXY/xt_socket modules yourself."
-    fi
+    case $KERNEL_VERSION in 
+	"3.10.107-UBNT")
+		chmod 644 assets/modules/*.ko
+		cp assets/modules/*.ko /lib/modules/3.10.107-UBNT/kernel/net/netfilter/
+		cat assets/modules/tproxy.conf >> /etc/modules
+		log "depmod..."
+		depmod -a
+		modprobe nf_tproxy_core
+		modprobe xt_TPROXY
+		modprobe xt_socket
+		;;
+	*)
+		log "WARNING: Current kernel version $KERNEL_VERSION not supported."
+		log "You can proceed with installation, but UDP forwarding will not work."
+		log "We recommend you to install UBNT FW 1.10.x to get proper kernel version."
+		log "Alternatively, you can build xt_TPROXY/xt_socket modules yourself."
+		;;
+    esac
 }
 
 function check-ulimit () {
@@ -140,11 +143,11 @@ function install-supervisor () {
     # apt-get -y -qq install supervisor
     case $CODENAME in 
         "wheezy")
-            dpkg --force-all -i assets/supervisor/python-medusa_0.5.4-7_all.deb 2>&1 >> $LOGFILE 
-            dpkg --force-all -i assets/supervisor/python-meld3_0.6.5-3.1_mips.deb 2>&1 >> $LOGFILE
-            dpkg --force-all -i assets/supervisor/python-pkg-resources_0.6.24-1_all.deb 2>&1 >> $LOGFILE
-            dpkg --force-all -i assets/supervisor/python-support_1.0.15_all.deb 2>&1 >> $LOGFILE
-            dpkg --force-all -i assets/supervisor/supervisor_3.0a8-1.1+deb7u1_all.deb 2>&1 >> $LOGFILE
+            dpkg --force-all -i assets/supervisor/wheezy/python-medusa_0.5.4-7_all.deb 2>&1 >> $LOGFILE 
+            dpkg --force-all -i assets/supervisor/wheezy/python-meld3_0.6.5-3.1_mips.deb 2>&1 >> $LOGFILE
+            dpkg --force-all -i assets/supervisor/wheezy/python-pkg-resources_0.6.24-1_all.deb 2>&1 >> $LOGFILE
+            dpkg --force-all -i assets/supervisor/wheezy/python-support_1.0.15_all.deb 2>&1 >> $LOGFILE
+            dpkg --force-all -i assets/supervisor/wheezy/supervisor_3.0a8-1.1+deb7u1_all.deb 2>&1 >> $LOGFILE
             cp assets/supervisord.conf /etc/supervisor/supervisord.conf
             sed -i "s^LOGDIR=/var/log/supervisor^LOGDIR=/var/log^g" /etc/init.d/supervisor
             if ! grep ulimit /etc/init.d/supervisor; then
@@ -155,10 +158,12 @@ function install-supervisor () {
             /etc/init.d/supervisor start
             ;;
         "stretch")
-            
+            dpkg --force-all -i assets/supervisor/stretch/python-meld3_1.0.2-2_all.deb 2>&1 >> $LOGFILE
+	    dpkg --force-all -i assets/supervisor/stretch/supervisor_3.3.1-1+deb9u1_all.deb 2>&1 >> $LOGFILE
             ;;
         *)
             log "ERROR: OS version $CODENAME not supported."
+	    exit -1
             ;;
     esac
     if ps -ef | grep -v grep | grep supervisor; then
