@@ -144,6 +144,9 @@ function install-supervisor () {
     dpkg --force-all -i assets/supervisor/supervisor_3.0a8-1.1+deb7u1_all.deb 2>&1 >> $LOGFILE
     cp assets/supervisord.conf /etc/supervisor/supervisord.conf
     sed -i "s^LOGDIR=/var/log/supervisor^LOGDIR=/var/log^g" /etc/init.d/supervisor
+    if ! grep ulimit /etc/init.d/supervisor; then
+        sed -i "/LOGDIR/a ulimit -n 1048576" /etc/init.d/supervisor
+    fi
     echo "*/2 * * * * root if ! pgrep supervisord; then /etc/init.d/supervisor start; fi" > /etc/cron.d/supervisord-watchdog
     /etc/init.d/supervisor stop
     /etc/init.d/supervisor start
