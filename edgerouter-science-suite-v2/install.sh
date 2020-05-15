@@ -30,21 +30,6 @@ function check-root () {
     fi
 }
 
-function check-system-version () {
-    log "Checking system version..."
-    OS_RELEASE_FILE="/etc/os-release"
-    VERSION_FILE="/etc/version"
-    source $OS_RELEASE_FILE
-    OS_RELEASE=$(echo $PRETTY_NAME)
-    CODENAME=$(echo $VERSION_CODENAME)
-    VERSION=$(cat /etc/version)
-    KERNEL_VERSION=$(uname -r)
-    log "OS Release: $OS_RELEASE"
-    log "EdgeOS Version: $VERSION"
-    log "Kernel Version: $KERNEL_VERSION"
-    /opt/vyatta/bin/vyatta-op-cmd-wrapper show version >> $LOGFILE
-}
-
 function install-tproxy-modules () {
     log "Installing TPROXY kernel modules..."
     case $KERNEL_VERSION in 
@@ -56,7 +41,6 @@ function install-tproxy-modules () {
 		depmod -a
 		modprobe nf_tproxy_core
 		modprobe xt_TPROXY
-		modprobe xt_socket
 		;;
         "4.9.79-UBNT")
                 log "WARNING: Current kernel version $KERNEL_VERSION is under development."
@@ -149,8 +133,8 @@ function install-supervisor () {
     # Alternatively, use online installation...
     # apt-get -y -qq update
     # apt-get -y -qq install supervisor
-    case $CODENAME in 
-        "wheezy")
+    case $VERSION_ID in 
+        "7")
             dpkg --force-all -i assets/supervisor/wheezy/python-medusa_0.5.4-7_all.deb 2>&1 >> $LOGFILE 
             dpkg --force-all -i assets/supervisor/wheezy/python-meld3_0.6.5-3.1_mips.deb 2>&1 >> $LOGFILE
             dpkg --force-all -i assets/supervisor/wheezy/python-pkg-resources_0.6.24-1_all.deb 2>&1 >> $LOGFILE
@@ -165,7 +149,7 @@ function install-supervisor () {
             /etc/init.d/supervisor stop
             /etc/init.d/supervisor start
             ;;
-        "stretch")
+        "9")
             dpkg --force-all -i assets/supervisor/stretch/python-meld3_1.0.2-2_all.deb 2>&1 >> $LOGFILE
 	    dpkg --force-all -i assets/supervisor/stretch/supervisor_3.3.1-1+deb9u1_all.deb 2>&1 >> $LOGFILE
             sed -i "/\[Service\]/a LimitNOFILE=1048576" /lib/systemd/system/supervisor.service
@@ -200,16 +184,16 @@ function install-frp () {
 
 function install-control-scripts () {
     log "Installing control scripts..."
-    case $CODENAME in 
-        "wheezy")
+    case $VERSION_ID in 
+        "7")
             cp assets/etc/init.d/science /etc/init.d/
             chmod 755 /etc/init.d/science
             cp assets/chnroute.txt /config/
-            update-rc.d science enable
-            /etc/init.d/science stop
+            # update-rc.d science enable
+            update-rc.d science start 30 2 3 4 5 . stop 30 0 1 6 .
             /etc/init.d/science start
             ;;
-        "stretch")
+        "9")
             cp assets/systemd/science.service /lib/systemd/system/
             mkdir /config/science
             cp assets/systemd/science /config/science/
@@ -242,10 +226,35 @@ if [ -e /opt/vyatta/bin/vyatta-op-cmd-wrapper ]; then
     HWSN=$(/opt/vyatta/bin/vyatta-op-cmd-wrapper show version | grep S/N | awk '{print $3}')
 fi
 
+# Check system version
+log "Checking system version..."
+OS_RELEASE_FILE="/etc/os-release"
+VERSION_FILE="/etc/version"
+source $OS_RELEASE_FILE
+OS_RELEASE=$(echo $PRETTY_NAME)
+VERSION=$(cat /etc/version)
+KERNEL_VERSION=$(uname -r)
+VERSION_ID=$(echo $VERSION_ID)
+case $VERSION_ID in
+    "7")
+        CODENAME="wheezy"
+        ;;
+    "9")
+        CODENAME="stretch"
+        ;;
+    *)
+        log "ERROR: Unsupported OS version ID."
+        exit -1
+        ;;
+esac
+log "OS Release: $OS_RELEASE"
+log "EdgeOS Version: $VERSION"
+log "Kernel Version: $KERNEL_VERSION"
+/opt/vyatta/bin/vyatta-op-cmd-wrapper show version >> $LOGFILE
+
 welcome
 check-shell
 check-root
-check-system-version
 install-tproxy-modules
 check-ulimit
 configure-set-system-parameters
