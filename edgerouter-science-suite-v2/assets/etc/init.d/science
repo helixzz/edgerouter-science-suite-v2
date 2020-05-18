@@ -143,7 +143,7 @@ case "$1" in
     $0 start
     ;;
   status)
-    iptables -w -t nat -L -n -v
+    iptables -w -t mangle -L -n -v
     ;;
   *)
     echo "Usage: /etc/init.d/science {start|stop|restart|status}"
