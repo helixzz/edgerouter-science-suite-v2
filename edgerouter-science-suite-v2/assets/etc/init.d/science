@@ -82,7 +82,7 @@ EOF
     iptables -w -t mangle -N V2RAY
     iptables -w -t mangle -A V2RAY -p tcp -m set --match-set ss_ipset_bypass dst -j RETURN
     iptables -w -t mangle -A V2RAY -p udp -m set --match-set ss_ipset_bypass dst -j RETURN
-    iptables -w -t mangle -A V2RAY -p udp --dport 53 -j RETURN
+#   iptables -w -t mangle -A V2RAY -p udp --dport 53 -j RETURN
     iptables -w -t mangle -A V2RAY -p tcp -j TPROXY --on-port 1081 --tproxy-mark 1
     iptables -w -t mangle -A V2RAY -p udp -j TPROXY --on-port 1081 --tproxy-mark 1
     iptables -w -t mangle -A PREROUTING -p tcp -j V2RAY
@@ -91,7 +91,7 @@ EOF
     iptables -w -t mangle -N V2RAY_MARK
     iptables -w -t mangle -A V2RAY_MARK -p tcp -m set --match-set ss_ipset_bypass dst -j RETURN
     iptables -w -t mangle -A V2RAY_MARK -p udp -m set --match-set ss_ipset_bypass dst -j RETURN
-    iptables -w -t mangle -A V2RAY_MARK -p udp --dport 53 -j RETURN
+#   iptables -w -t mangle -A V2RAY_MARK -p udp --dport 53 -j RETURN
     iptables -w -t mangle -A V2RAY_MARK -j RETURN -m mark --mark 0xff # Return marked traffic to avoid loopback
     iptables -w -t mangle -A V2RAY_MARK -p tcp -j MARK --set-mark 1
     iptables -w -t mangle -A V2RAY_MARK -p udp -j MARK --set-mark 1
