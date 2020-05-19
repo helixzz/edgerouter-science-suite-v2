@@ -11,7 +11,7 @@
 			"tag": "transparent-inbound",
 			"protocol": "dokodemo-door",
 			"settings": {
-				"network": "tcp",
+				"network": "tcp,udp",
 				"followRedirect": true
 			},
 			"sniffing": {
@@ -35,8 +35,8 @@
 					"port": V2RAY_SERVER_PORT,
 					"users": [{
 						"id": "V2RAY_ACCOUNT_ID",
-						"alterId": 4,
-						"security": "auto",
+						"alterId": 8,
+						"security": "none",
 						"level": 1
 					}]
 				}]
@@ -147,10 +147,6 @@
 				"geosite:tencent",
 				"domain:weibo.com",
 				"domain:weibocdn.com",
-				"domain:ooklaserver.net",
-				"domain:speedtest.net",
-				"domain:cdnst.net",
-				"geosite:speedtest",
 				"geosite:microsoft"
 				],
 				"outboundTag": "direct-out"
@@ -163,10 +159,10 @@
 
 		"policy": {
 			"levels": {
-				"0": {
+				"1": {
 					"uplinkOnly": 5,
 					"downlinkOnly": 5,
-					"bufferSize": 0
+					"bufferSize": 32
 				}
 			},
 			"system": {
