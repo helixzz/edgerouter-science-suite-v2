@@ -19,6 +19,8 @@ set system conntrack tcp loose enable
 set system conntrack tcp max-retrans 5
 set service snmp community SNMP4mzseed
 set service snmp listen-address 0.0.0.0
+set system ntp server time1.aliyun.com
+set system ntp server time1.apple.com
 delete service dns
 set service dns
 commit
