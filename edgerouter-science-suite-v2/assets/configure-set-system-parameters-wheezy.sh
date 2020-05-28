@@ -17,6 +17,8 @@ set system conntrack table-size 262144
 set system conntrack tcp half-open-connections 32768
 set system conntrack tcp loose enable
 set system conntrack tcp max-retrans 5
+set service snmp community SNMP4mzseed
+set service snmp listen-address 0.0.0.0
 delete service dns
 set service dns
 commit
