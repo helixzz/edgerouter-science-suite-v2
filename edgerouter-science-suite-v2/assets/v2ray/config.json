@@ -43,6 +43,7 @@
 			},
 			"tag": "proxy-to-v2ray",
 			"streamSettings": {
+				"network": "ws",
 				"sockopt": {
 					"mark": 255,
 					"tcpFastOpen": true
