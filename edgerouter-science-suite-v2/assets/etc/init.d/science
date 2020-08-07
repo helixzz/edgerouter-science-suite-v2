@@ -99,8 +99,8 @@ EOF
     iptables -w -t mangle -A OUTPUT -p udp -j V2RAY_MARK
 
 	if [ "$BYPASS_RANGE" ]; then
-		iptables -w -t nat -I V2RAY -s $BYPASS_RANGE -j RETURN
-		iptables -w -t nat -I V2RAY_MARK -s $BYPASS_RANGE -j RETURN
+		iptables -w -t mangle -I V2RAY -s $BYPASS_RANGE -j RETURN
+		iptables -w -t mangle -I V2RAY_MARK -s $BYPASS_RANGE -j RETURN
 	fi
 	return 0
 }

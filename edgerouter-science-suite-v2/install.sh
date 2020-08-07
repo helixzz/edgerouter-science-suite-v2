@@ -34,13 +34,29 @@ function install-tproxy-modules () {
     log "Installing TPROXY kernel modules..."
     case $KERNEL_VERSION in 
 	"3.10.107-UBNT")
-		chmod 644 assets/modules/$KERNEL_VERSION/*.ko
-		cp assets/modules/$KERNEL_VERSION/*.ko /lib/modules/$KERNEL_VERSION/kernel/net/netfilter/
-		cat assets/modules/tproxy.conf >> /etc/modules
-		log "depmod..."
-		depmod -a
-		modprobe nf_tproxy_core
-		modprobe xt_TPROXY
+		case $PLATFORM in
+			"ER-e100")
+				chmod 644 assets/modules/$KERNEL_VERSION/$PLATFORM/*.ko
+				cp assets/modules/$KERNEL_VERSION/$PLATFORM/*.ko /lib/modules/$KERNEL_VERSION/kernel/net/netfilter/
+				cat assets/modules/tproxy.conf >> /etc/modules
+				log "depmod..."
+				depmod -a
+				modprobe nf_tproxy_core
+				modprobe xt_TPROXY
+				;;
+			"ER-e300")
+				chmod 644 assets/modules/$KERNEL_VERSION/$PLATFORM/*.ko
+                                cp assets/modules/$KERNEL_VERSION/$PLATFORM/*.ko /lib/modules/$KERNEL_VERSION/kernel/net/netfilter/
+                                cat assets/modules/tproxy.conf >> /etc/modules
+                                log "depmod..."
+                                depmod -a
+                                modprobe nf_tproxy_core
+                                modprobe xt_TPROXY
+                                ;;
+			*)
+				log "ERROR: Unsupported hardware platform $PLATFORM."
+				;;
+		esac
 		;;
         "4.9.79-UBNT")
                 log "WARNING: Current kernel version $KERNEL_VERSION is under development."
@@ -233,6 +249,7 @@ VERSION_FILE="/etc/version"
 source $OS_RELEASE_FILE
 OS_RELEASE=$(echo $PRETTY_NAME)
 VERSION=$(cat /etc/version)
+PLATFORM=$(cat /etc/version | cut -d "." -f2)
 KERNEL_VERSION=$(uname -r)
 VERSION_ID=$(echo $VERSION_ID)
 case $VERSION_ID in
